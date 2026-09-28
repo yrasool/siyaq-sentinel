@@ -4,6 +4,8 @@ SIYAQ Sentinel is a local security-incident workbench for National Parks refresh
 
 The demo records are invented fixtures. The optional Grid collector reads scripts in a local SIYAQ checkout. Sentinel does not collect live Cloudflare logs, contact the GPU server, or deploy anything.
 
+Imports accept only the documented event fields. Raw URLs, headers, request bodies, and absolute source paths are rejected; source references must be short relative paths. ActionTrace's six free-text fields still require human redaction before import. Sentinel does not authenticate the first event it receives or prove that a pseudonymous actor ID was actually anonymized.
+
 From this standalone repository's directory in Windows PowerShell:
 
 ```powershell

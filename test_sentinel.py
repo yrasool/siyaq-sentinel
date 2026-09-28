@@ -1,4 +1,5 @@
 import unittest
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -52,6 +53,30 @@ class SentinelTests(unittest.TestCase):
             path = Path(directory) / "events.jsonl"
             path.write_text('{"id":"x","timestamp":"2026-09-25T12:00:00Z","product":"grid","action":"release-check","outcome":"build-test-mismatch","actor_id":"a","evidence":{"secret":"value"}}\n', encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "evidence must be a list"):
+                read_events(path)
+
+    def test_import_rejects_extra_request_data_and_unsafe_references(self):
+        base = {"id": "x", "timestamp": "2026-09-25T12:00:00Z", "product": "parks",
+                "action": "refresh", "outcome": "unauthorized", "actor_id": "pseudonym"}
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            for extra in ({"headers": {"Authorization": "Bearer example"}},
+                          {"url": "https://example.test/refresh?token=example"}):
+                path.write_text(json.dumps(base | extra) + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unexpected event fields"):
+                    read_events(path)
+            for ref in ("../secret.txt", "C:/private/file.txt", "https://example.test/log", "apps//route.ts"):
+                path.write_text(json.dumps(base | {"evidence": [ref]}) + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "bounded relative source paths"):
+                    read_events(path)
+
+    def test_import_rejects_oversized_actor_id(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            path.write_text(json.dumps({"id": "x", "timestamp": "2026-09-25T12:00:00Z", "product": "parks",
+                                        "action": "refresh", "outcome": "unauthorized", "actor_id": "a" * 129}) + "\n",
+                            encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "size limit"):
                 read_events(path)
 
     def test_agent_trace_is_case_not_attack_claim(self):

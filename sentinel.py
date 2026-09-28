@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -15,6 +16,9 @@ THRESHOLD = 3
 MAX_EVENTS = 10_000
 MAX_LINE_CHARS = 8_192
 TRACE_FIELDS = ("wanted", "available", "proposed", "simpler_candidate", "observed", "assessment")
+EVENT_FIELDS = frozenset(("id", "timestamp", "product", "action", "outcome", "actor_id", "evidence", "trace"))
+FIELD_LIMITS = {"id": 128, "timestamp": 64, "product": 40, "action": 40, "outcome": 40, "actor_id": 128}
+SOURCE_REF = re.compile(r"[A-Za-z0-9._/-]{1,200}\Z")
 
 
 def read_events(path: Path) -> list[dict]:
@@ -29,12 +33,25 @@ def read_events(path: Path) -> list[dict]:
             required = ("id", "timestamp", "product", "action", "outcome", "actor_id")
             if not isinstance(event, dict) or any(not isinstance(event.get(key), str) or not event[key] for key in required):
                 raise ValueError(f"line {number}: missing or invalid event field")
-            stamp = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+            unknown_fields = set(event) - EVENT_FIELDS
+            if unknown_fields:
+                raise ValueError(f"line {number}: unexpected event fields: {', '.join(sorted(unknown_fields))}")
+            if any(len(event[key]) > limit for key, limit in FIELD_LIMITS.items()):
+                raise ValueError(f"line {number}: event field exceeds its size limit")
+            try:
+                stamp = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+            except ValueError as error:
+                raise ValueError(f"line {number}: invalid timestamp") from error
             if stamp.tzinfo is None:
                 raise ValueError(f"line {number}: timestamp needs a timezone")
             if "evidence" in event and (not isinstance(event["evidence"], list)
                                         or any(not isinstance(item, str) for item in event["evidence"])):
                 raise ValueError(f"line {number}: evidence must be a list of strings")
+            if "evidence" in event and (len(event["evidence"]) > 12 or any(
+                not SOURCE_REF.fullmatch(ref) or any(part in {"", ".", ".."} for part in ref.split("/"))
+                for ref in event["evidence"]
+            )):
+                raise ValueError(f"line {number}: evidence must contain bounded relative source paths")
             if "trace" in event and (not isinstance(event["trace"], dict)
                                      or set(event["trace"]) != set(TRACE_FIELDS)
                                      or any(not isinstance(event["trace"][key], str)

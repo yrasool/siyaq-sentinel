@@ -12,11 +12,13 @@ This document records what was built, why it was built that way, how it was chec
 
 ## 2. Define the event contract
 
-**What:** Each JSONL event needs an ID, timezone-aware timestamp, product, action, outcome, and pseudonymous actor ID. Optional `evidence` contains only relative source references. A redacted ActionTrace event adds six bounded text fields: wanted, available, proposed, simpler candidate, observed, and assessment. The parser rejects missing fields, duplicate IDs, oversized lines, too many events, timestamps without timezones, and invalid evidence or trace shapes.
+**What:** Each JSONL event needs an ID, timezone-aware timestamp, product, action, outcome, and pseudonymous actor ID. Optional `evidence` contains only relative source references. A redacted ActionTrace event adds six bounded text fields: wanted, available, proposed, simpler candidate, observed, and assessment. The parser rejects missing or unexpected fields, duplicate IDs, oversized lines or fields, too many events, timestamps without timezones, and invalid evidence or trace shapes.
 
 **Why:** A small schema makes each detection explainable. Timezones are required for a correct ten-minute window. Duplicate IDs would make a timeline ambiguous.
 
 **Why not raw request bodies, headers, IP addresses, or tokens:** The current detections do not need them. Keeping them out of the stored event projection reduces the risk of collecting credentials or personal data. A later live adapter must make its own privacy and retention decision before use.
+
+**Privacy limit:** The parser rejects raw URLs and headers as extra fields and absolute source paths in `evidence`. It cannot know whether a value placed inside an allowed free-text field or actor ID is sensitive. The producer must pseudonymize actor IDs and redact ActionTrace text before import; this is a schema guard, not a data-loss-prevention system.
 
 ## 3. Add three narrow detection rules
 
@@ -97,6 +99,14 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 **Why:** A separate public repository makes the project reproducible and reviewable without exposing the broad SIYAQ workspace. The final standalone test run passed twelve tests. The local demo import yielded four cases. A mobile browser check found no horizontal overflow at 390 pixels.
 
 **Why not deploy the casebook:** The local HTML demo is sufficient to inspect the workflow. A public analyst service would need the access, retention, and Cloudflare release controls described above.
+
+## 14. Reject accidental sensitive fields at import
+
+**What:** The JSONL importer now rejects unexpected top-level fields, including a supplied `headers` object or raw `url`. It bounds each required field and accepts only short, relative source paths in `evidence`. Tests check traversal, absolute paths, URL references, and oversized actor IDs. All fourteen tests pass with the existing fixtures.
+
+**Why:** Silently dropping extra fields during SQLite storage still leaves a risky ingestion contract: callers could believe a raw log was safe to submit. Explicit rejection makes that mistake visible before any event is stored.
+
+**Why not call this complete privacy protection:** Allowed free-text fields can still contain sensitive content. A later producer must redact before submission, and first-seen telemetry remains unauthenticated. The rules still have the misses and over-alerts documented by the replay.
 
 ## Next milestones
 
