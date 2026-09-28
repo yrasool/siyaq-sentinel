@@ -55,6 +55,7 @@ def scenarios() -> list[Scenario]:
     agent = read_events(Path(__file__).parent / "fixtures" / "actiontrace-demo.jsonl")
     unreviewed = [dict(agent[0], id="agent-unreviewed", outcome="unclassified")]
     grid = read_events(Path(__file__).parent / "fixtures" / "grid-demo.jsonl")
+    claude_cadence = read_events(Path(__file__).parent / "fixtures" / "model-attack-claude.jsonl")
     return [
         Scenario("P1", "Same-actor refresh burst", "adversarial",
                  "Three rejected refresh attempts under one pseudonymous actor in four minutes.",
@@ -64,7 +65,10 @@ def scenarios() -> list[Scenario]:
                  True, distributed, "Per-actor grouping alone cannot connect these attempts; shared origin is not established by the current event schema."),
         Scenario("P3", "Low-and-slow refresh attempts", "adversarial",
                  "One actor spaces three rejected attempts eleven minutes apart.",
-                 True, slow, "The ten-minute window expires before the third event."),
+                 True, slow, "The 30-minute review rule should catch the sequence without claiming malicious intent."),
+        Scenario("P4", "Paced pairs evade short windows", "adversarial",
+                 "One actor makes six denied attempts in pairs over 75 minutes; this sequence was proposed by Claude Sonnet.",
+                 True, claude_cadence, "A longer volume rule should request review without treating a denied request as compromise."),
         Scenario("M1", "Media redirect leaves allowlist", "adversarial",
                  "A media fetch reaches a redirect that the host policy rejects.",
                  True, [event("m1", 0, "paperstack", "media-fetch", "blocked-redirect", "actor-m")],
@@ -105,6 +109,16 @@ def scenarios() -> list[Scenario]:
                  "A media fetch stays on an approved path.",
                  False, [event("b2", 0, "paperstack", "media-fetch", "allowed", "visitor")],
                  "A quiet control for the media rule."),
+        Scenario("B3", "Session-expiry retry pattern", "benign",
+                 "A legitimate operator retries a denied refresh at 0, 11, and 22 minutes after losing authorization.",
+                 False, [event(f"b3-{i}", minute, "parks", "refresh", "unauthorized", "operator")
+                         for i, minute in enumerate((0, 11, 22), 1)],
+                 "The event schema cannot distinguish this from deliberate low-and-slow attempts; review alert is an over-alert for this labeled control."),
+        Scenario("B4", "Stale-credential client retry", "benign",
+                 "A misconfigured internal client makes six denied refresh attempts at the same cadence as P4.",
+                 False, [event(f"b4-{i}", minute, "parks", "refresh", "unauthorized", "internal-client")
+                         for i, minute in enumerate((0, 5, 35, 40, 70, 75), 1)],
+                 "The event shape is observationally indistinguishable from P4; this labeled benign control exposes a predictable over-alert."),
     ]
 
 

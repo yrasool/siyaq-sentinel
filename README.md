@@ -18,7 +18,7 @@ python replay.py
 python -m unittest discover -s . -p 'test_*.py'
 ```
 
-Open `out/incidents.html`. The three imports should produce four cases. Open `out/red-team-report.html` to see how the current detector behaves on thirteen curated local scenarios, including misses and over-alerts. Re-running an import adds no duplicates. To record an analyst decision, copy a case ID from `python app.py list`:
+Open `out/incidents.html`. The three imports should produce four cases. Open `out/red-team-report.html` to see how the current detector behaves on sixteen curated local scenarios, including misses and over-alerts. The [model attack/defense trace](docs/MODEL_ATTACK_DEFEND.md) shows exact Codex and Claude proposals, what ran locally, and the observed before/after results. Re-running an import adds no duplicates. To record an analyst decision, copy a case ID from `python app.py list`:
 
 ```powershell
 python app.py close CASE_ID --note "Reviewed the local fixture; no live incident."
@@ -28,7 +28,7 @@ python app.py reopen CASE_ID --note "Reopened for further review."
 
 The SQLite database and generated HTML stay under ignored `out/`. To add a **read-only source inspection** of actual Grid scripts, run `python app.py ingest fixtures/parks-demo.jsonl --grid-repo PATH_TO_SIYAQ` in a fresh database. The collector emits a case only when it recognizes the legacy root release command and separate isolated Grid check. It does not inspect a fresh build or deployed Worker; an unrecognized pattern produces no event.
 
-One rule opens a case when the same pseudonymous actor has at least three unauthorized Parks refresh attempts within ten minutes. A second handles a Paperstack media fetch blocked at a redirect to an unapproved host. A third handles a Grid release-path mismatch report. An authorized refresh, an ordinary read, and an allowed media fetch are controls that must not trigger an alert.
+Parks rules request review for three unauthorized refresh attempts from one pseudonymous actor within ten or thirty minutes, or six in ninety minutes when shorter-window cases do not already explain the events. These are demo thresholds, not production-calibrated limits. Other rules handle a Paperstack media fetch blocked at an unapproved redirect, a Grid release-path mismatch report, and a classified ActionTrace proposal. Authorized refreshes, ordinary reads, and allowed media fetches remain quiet controls. Two benign retry patterns now over-alert, as the replay makes visible.
 
 Each case separates triggering event IDs from relevant local source files and states what remains unknown. A rejected request is not proof of an attacker or compromise. The short case ID is a stable identifier, not an authenticity guarantee. This version has no live telemetry or cross-product correlation.
 

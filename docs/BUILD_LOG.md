@@ -108,6 +108,14 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 
 **Why not call this complete privacy protection:** Allowed free-text fields can still contain sensitive content. A later producer must redact before submission, and first-seen telemetry remains unauthenticated. The rules still have the misses and over-alerts documented by the replay.
 
+## 15. Let different models challenge and repair the local detector
+
+**What:** Codex Luna proposed a low-and-slow Parks event sequence already present in the replay; Codex Sol proposed a 30-minute review rule. Claude Sonnet then proposed a distinct six-event paced sequence that the local detector missed; Codex Sol proposed a volume rule. The [model attack/defense trace](MODEL_ATTACK_DEFEND.md) records the proposals, exact fixtures, baseline and post-change results, and benign controls.
+
+**Why:** Running the model-generated events through the same parser and detector separates plausible-sounding attack claims from observed misses. Running benign lookalikes after each defense reveals the cost of broader detection. The current sixteen-scenario replay has six caught, four missed, one partial, three over-alerts, and two quiet controls; these hand-authored counts are not a field accuracy estimate.
+
+**Why not call this a live attack or solved security issue:** No request reached Parks, Paperstack, Grid, Cloudflare, or the GPU server. The new rules improve local review coverage but do not change an application's authorization boundary. The benign controls remain hard to distinguish with the current event fields.
+
 ## Next milestones
 
 1. Add privacy-reviewed event adapters for actual Parks and Paperstack application telemetry, with controlled local replay before any live connection.

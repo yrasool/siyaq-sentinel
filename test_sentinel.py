@@ -21,11 +21,35 @@ class SentinelTests(unittest.TestCase):
 
     def test_attempts_outside_window_do_not_alert(self):
         events = []
-        for number, minute in enumerate((0, 11, 22), 1):
-            events.append({"id": str(number), "timestamp": f"2026-09-25T12:{minute:02d}:00Z",
-                           "_time": read_time(minute), "product": "parks", "action": "refresh",
+        for number, minute in enumerate((0, 31, 62), 1):
+            moment = read_time(minute)
+            events.append({"id": str(number), "timestamp": moment.isoformat(),
+                           "_time": moment, "product": "parks", "action": "refresh",
                            "outcome": "unauthorized", "actor_id": "a"})
         self.assertEqual(detect(events), [])
+
+    def test_low_and_slow_attempts_create_one_review_case(self):
+        events = read_events(Path(__file__).parent / "fixtures" / "model-attack-luna.jsonl")
+        cases = detect(events)
+        self.assertEqual([case["rule"] for case in cases], ["parks-refresh-repeated-unauthorized-30m-v1"])
+        self.assertEqual(cases[0]["event_ids"], ["review-1", "review-2", "review-3"])
+        self.assertIn("cannot distinguish", cases[0]["unknown"])
+
+    def test_paced_pairs_proposed_by_claude_create_one_review_case(self):
+        events = read_events(Path(__file__).parent / "fixtures" / "model-attack-claude.jsonl")
+        cases = detect(events)
+        self.assertEqual([case["rule"] for case in cases], ["parks-refresh-denied-volume-90m-v1"])
+        self.assertEqual(cases[0]["event_ids"], [f"c{i}" for i in range(1, 7)])
+
+    def test_volume_rule_does_not_duplicate_existing_burst_case(self):
+        events = []
+        for number, minute in enumerate((0, 1, 2, 35, 36, 37), 1):
+            moment = read_time(minute)
+            events.append({"id": str(number), "timestamp": moment.isoformat(),
+                           "_time": moment, "product": "parks", "action": "refresh",
+                           "outcome": "unauthorized", "actor_id": "a"})
+        self.assertEqual([case["rule"] for case in detect(events)],
+                         ["parks-refresh-repeated-unauthorized-v1"] * 2)
 
     def test_html_escapes_event_values(self):
         events = read_events(Path(__file__).parent / "fixtures" / "parks-demo.jsonl")
@@ -90,8 +114,8 @@ class SentinelTests(unittest.TestCase):
 
 
 def read_time(minute):
-    from datetime import datetime, timezone
-    return datetime(2026, 9, 25, 12, minute, tzinfo=timezone.utc)
+    from datetime import datetime, timedelta, timezone
+    return datetime(2026, 9, 25, 12, tzinfo=timezone.utc) + timedelta(minutes=minute)
 
 
 if __name__ == "__main__":

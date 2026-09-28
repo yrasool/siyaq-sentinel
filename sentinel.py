@@ -12,7 +12,10 @@ from pathlib import Path
 
 
 WINDOW = timedelta(minutes=10)
+SLOW_WINDOW = timedelta(minutes=30)
+VOLUME_WINDOW = timedelta(minutes=90)
 THRESHOLD = 3
+VOLUME_THRESHOLD = 6
 MAX_EVENTS = 10_000
 MAX_LINE_CHARS = 8_192
 TRACE_FIELDS = ("wanted", "available", "proposed", "simpler_candidate", "observed", "assessment")
@@ -108,6 +111,8 @@ def detect(events: list[dict]) -> list[dict]:
 
     cases = []
     for actor, attempts in sorted(by_actor.items()):
+        attempts.sort(key=lambda event: (event["_time"], event["id"]))
+        burst_ids = set()
         start = 0
         while start < len(attempts):
             end = start
@@ -115,6 +120,7 @@ def detect(events: list[dict]) -> list[dict]:
                 end += 1
             window = attempts[start:end]
             if len(window) >= THRESHOLD:
+                burst_ids.update(event["id"] for event in window)
                 cases.append({
                     "rule": "parks-refresh-repeated-unauthorized-v1",
                     "title": "Repeated unauthorized Parks refresh attempts",
@@ -129,6 +135,60 @@ def detect(events: list[dict]) -> list[dict]:
                     "summary": f"{len(window)} unauthorized refresh attempts within 10 minutes",
                     "unknown": "Actor identity and intent are not established by these events.",
                     "recommended_action": "Review refresh access logs and rate-limit coverage; do not infer compromise from rejected requests alone.",
+                })
+                start = end
+            else:
+                start += 1
+        remaining = [event for event in attempts if event["id"] not in burst_ids]
+        slow_ids = set()
+        start = 0
+        while start < len(remaining):
+            end = start
+            while end < len(remaining) and remaining[end]["_time"] - remaining[start]["_time"] <= SLOW_WINDOW:
+                end += 1
+            window = remaining[start:end]
+            if len(window) >= THRESHOLD:
+                slow_ids.update(event["id"] for event in window)
+                cases.append({
+                    "rule": "parks-refresh-repeated-unauthorized-30m-v1",
+                    "title": "Repeated Parks refresh denials over a longer window",
+                    "actor_id": actor,
+                    "status": "open",
+                    "first_seen": window[0]["timestamp"],
+                    "last_seen": window[-1]["timestamp"],
+                    "event_ids": [event["id"] for event in window],
+                    "trigger_event_ids": [event["id"] for event in window[:THRESHOLD]],
+                    "source_refs": ["workers/national-parks-refresh/src/auth.ts",
+                                    "workers/national-parks-refresh/src/index.ts"],
+                    "summary": f"{len(window)} unauthorized refresh attempts within 30 minutes",
+                    "unknown": "Timing alone cannot distinguish deliberate probing from a user retrying after an expired session.",
+                    "recommended_action": "Review the authorization context and retry pattern before deciding whether to escalate.",
+                })
+                start = end
+            else:
+                start += 1
+        remaining = [event for event in remaining if event["id"] not in slow_ids]
+        start = 0
+        while start < len(remaining):
+            end = start
+            while end < len(remaining) and remaining[end]["_time"] - remaining[start]["_time"] <= VOLUME_WINDOW:
+                end += 1
+            window = remaining[start:end]
+            if len(window) >= VOLUME_THRESHOLD:
+                cases.append({
+                    "rule": "parks-refresh-denied-volume-90m-v1",
+                    "title": "Repeated Parks refresh denials across short windows",
+                    "actor_id": actor,
+                    "status": "open",
+                    "first_seen": window[0]["timestamp"],
+                    "last_seen": window[-1]["timestamp"],
+                    "event_ids": [event["id"] for event in window],
+                    "trigger_event_ids": [event["id"] for event in window[:VOLUME_THRESHOLD]],
+                    "source_refs": ["workers/national-parks-refresh/src/auth.ts",
+                                    "workers/national-parks-refresh/src/index.ts"],
+                    "summary": f"{len(window)} unauthorized refresh attempts within 90 minutes",
+                    "unknown": "This pattern may be deliberate probing or an internal client retrying with expired authorization.",
+                    "recommended_action": "Review client ownership and authorization context before deciding whether to escalate.",
                 })
                 start = end
             else:
