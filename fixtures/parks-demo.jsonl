@@ -1,0 +1,7 @@
+{"id":"e1","timestamp":"2026-09-25T12:00:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"demo-actor-a"}
+{"id":"e2","timestamp":"2026-09-25T12:02:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"demo-actor-a"}
+{"id":"e3","timestamp":"2026-09-25T12:03:00Z","product":"parks","action":"read","outcome":"ok","actor_id":"demo-actor-b"}
+{"id":"e4","timestamp":"2026-09-25T12:04:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"demo-actor-a"}
+{"id":"e5","timestamp":"2026-09-25T12:05:00Z","product":"parks","action":"refresh","outcome":"authorized","actor_id":"demo-actor-c"}
+{"id":"e6","timestamp":"2026-09-25T12:06:00Z","product":"paperstack","action":"media-fetch","outcome":"blocked-redirect","actor_id":"demo-actor-d"}
+{"id":"e7","timestamp":"2026-09-25T12:07:00Z","product":"paperstack","action":"media-fetch","outcome":"allowed","actor_id":"demo-actor-e"}
