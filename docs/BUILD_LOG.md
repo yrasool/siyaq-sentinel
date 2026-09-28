@@ -66,7 +66,7 @@ This project is kept in a standalone GitHub repository. The broad SIYAQ workspac
 
 ## 9. Local verification on 2026-09-28
 
-The initial standalone copy passed nine Python unit tests. Importing the Parks/Paperstack fixture added seven events and two cases; importing the Grid fixture added one event and one case. Closing a case with a note changed its stored status, `show` returned that status and note, and the rendered HTML included the decision. Reimporting the Parks/Paperstack fixture added zero events and preserved the three cases. These checks establish local workflow behavior only. The later ActionTrace and red-team additions require a fresh full test run before publication.
+The initial standalone copy passed nine Python unit tests. Importing the Parks/Paperstack fixture added seven events and two cases; importing the Grid fixture added one event and one case. Closing a case with a note changed its stored status, `show` returned that status and note, and the rendered HTML included the decision. Reimporting the Parks/Paperstack fixture added zero events and preserved the three cases. These checks establish local workflow behavior only. After adding ActionTrace and replay, all twelve tests passed. A fresh import of all three fixtures produced four cases.
 
 ## 10. Include agent-action tracing without merging the projects
 
@@ -89,6 +89,14 @@ The initial standalone copy passed nine Python unit tests. Importing the Parks/P
 ## 12. Compare with existing work
 
 The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, Sigma, OCSF, OpenTelemetry, OWASP agentic security, and ReliaQuest. It shows which ideas inform Sentinel and which compatibility or enterprise-product claims are not made. Sentinel is intentionally narrower: boundary-specific event traces, explicit unknowns, and reproducible detection gaps in Yusra's own application context.
+
+## 13. Publish and verify the standalone repository
+
+**What:** Published [yrasool/siyaq-sentinel](https://github.com/yrasool/siyaq-sentinel) as a public GitHub repository on 2026-09-28. GitHub reported `PUBLIC` visibility and `main` as the default branch. The committed files are the source, tests, fixtures, and documentation; generated reports and the SQLite database remain ignored under `out/`.
+
+**Why:** A separate public repository makes the project reproducible and reviewable without exposing the broad SIYAQ workspace. The final standalone test run passed twelve tests. The local demo import yielded four cases. A mobile browser check found no horizontal overflow at 390 pixels.
+
+**Why not deploy the casebook:** The local HTML demo is sufficient to inspect the workflow. A public analyst service would need the access, retention, and Cloudflare release controls described above.
 
 ## Next milestones
 
