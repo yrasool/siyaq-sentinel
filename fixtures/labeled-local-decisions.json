@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "label_basis": "Human-authored before execution from each synthetic scenario's intended behavior; independent of Sentinel's alert output, not an external ground-truth sample.",
+  "cases": [
+    {"id":"parks-denied-1","timestamp":"2026-09-29T12:00:00Z","probe":"parks-invalid-header","actor_id":"fixture-actor-a","expected_decision":"unauthorized","expected_review":true,"label_reason":"First of three rejected attempts at a protected refresh operation."},
+    {"id":"parks-denied-2","timestamp":"2026-09-29T12:02:00Z","probe":"parks-invalid-header","actor_id":"fixture-actor-a","expected_decision":"unauthorized","expected_review":true,"label_reason":"Second rejected attempt from the same synthetic actor."},
+    {"id":"parks-denied-3","timestamp":"2026-09-29T12:04:00Z","probe":"parks-invalid-header","actor_id":"fixture-actor-a","expected_decision":"unauthorized","expected_review":true,"label_reason":"Third rejected attempt completes the review-worthy sequence."},
+    {"id":"parks-no-config","timestamp":"2026-09-29T12:05:00Z","probe":"parks-missing-config","actor_id":"fixture-local-control","expected_decision":"unavailable","expected_review":false,"label_reason":"Missing local policy configuration is a separate operational failure, not evidence of actor probing."},
+    {"id":"parks-wrong-method","timestamp":"2026-09-29T12:06:00Z","probe":"parks-wrong-method","actor_id":"fixture-local-control","expected_decision":"method-not-allowed","expected_review":false,"label_reason":"Authenticated GET is rejected before refresh work runs."},
+    {"id":"parks-valid-auth","timestamp":"2026-09-29T12:07:00Z","probe":"parks-valid-auth","actor_id":"fixture-authorized","expected_decision":"authorized","expected_review":false,"label_reason":"A valid POST passes the authorization helper; refresh work is deliberately not invoked."},
+    {"id":"media-unsafe-redirect","timestamp":"2026-09-29T12:08:00Z","probe":"media-unsafe-redirect","actor_id":"fixture-media-a","expected_decision":"blocked-redirect","expected_review":true,"label_reason":"A redirect to an unapproved destination should be reviewed; no off-host fetch should occur."},
+    {"id":"media-allowed-redirect","timestamp":"2026-09-29T12:09:00Z","probe":"media-allowed-redirect","actor_id":"fixture-media-b","expected_decision":"allowed","expected_review":false,"label_reason":"Approved redirect and image response are ordinary behavior."},
+    {"id":"media-provider-change","timestamp":"2026-09-29T12:10:00Z","probe":"media-provider-change","actor_id":"fixture-provider-change","expected_decision":"blocked-redirect","expected_review":false,"label_reason":"An invented benign provider migration has the same observable blocked redirect and should expose an over-alert."}
+  ]
+}
