@@ -1,0 +1,9 @@
+{"id":"parks-denied-1","timestamp":"2026-09-29T12:00:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"fixture-actor-a","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"parks-denied-2","timestamp":"2026-09-29T12:02:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"fixture-actor-a","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"parks-denied-3","timestamp":"2026-09-29T12:04:00Z","product":"parks","action":"refresh","outcome":"unauthorized","actor_id":"fixture-actor-a","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"parks-no-config","timestamp":"2026-09-29T12:05:00Z","product":"parks","action":"refresh","outcome":"unavailable","actor_id":"fixture-local-control","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"parks-wrong-method","timestamp":"2026-09-29T12:06:00Z","product":"parks","action":"refresh","outcome":"method-not-allowed","actor_id":"fixture-local-control","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"parks-valid-auth","timestamp":"2026-09-29T12:07:00Z","product":"parks","action":"refresh","outcome":"authorized","actor_id":"fixture-authorized","evidence":["workers/national-parks-refresh/src/auth.ts"]}
+{"id":"media-unsafe-redirect","timestamp":"2026-09-29T12:08:00Z","product":"paperstack","action":"media-fetch","outcome":"blocked-redirect","actor_id":"fixture-media-a","evidence":["paperstack/src/lib/mediaPolicy.ts"]}
+{"id":"media-allowed-redirect","timestamp":"2026-09-29T12:09:00Z","product":"paperstack","action":"media-fetch","outcome":"allowed","actor_id":"fixture-media-b","evidence":["paperstack/src/lib/mediaPolicy.ts"]}
+{"id":"media-provider-change","timestamp":"2026-09-29T12:10:00Z","product":"paperstack","action":"media-fetch","outcome":"blocked-redirect","actor_id":"fixture-provider-change","evidence":["paperstack/src/lib/mediaPolicy.ts"]}

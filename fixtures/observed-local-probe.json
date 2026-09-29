@@ -1,0 +1,109 @@
+{
+  "scope": "Synthetic local probes of actual SIYAQ functions; no live request or production telemetry.",
+  "source_sha256": {
+    "parks": "981cf3bd4d4050ad73eed0431179e553886aa02114bf62903df7db3ea08120ea",
+    "paperstack": "ed5a09a1089acb7292f371cc179b04416f5d00f3755cccefd0f58136cdc35c3f"
+  },
+  "labels_written_before_execution": true,
+  "results": [
+    {
+      "id": "parks-denied-1",
+      "probe": "parks-invalid-header",
+      "expected_decision": "unauthorized",
+      "observed_decision": "unauthorized",
+      "decision_match": true,
+      "expected_review": true,
+      "observed_status": 401,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "parks-denied-2",
+      "probe": "parks-invalid-header",
+      "expected_decision": "unauthorized",
+      "observed_decision": "unauthorized",
+      "decision_match": true,
+      "expected_review": true,
+      "observed_status": 401,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "parks-denied-3",
+      "probe": "parks-invalid-header",
+      "expected_decision": "unauthorized",
+      "observed_decision": "unauthorized",
+      "decision_match": true,
+      "expected_review": true,
+      "observed_status": 401,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "parks-no-config",
+      "probe": "parks-missing-config",
+      "expected_decision": "unavailable",
+      "observed_decision": "unavailable",
+      "decision_match": true,
+      "expected_review": false,
+      "observed_status": 503,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "parks-wrong-method",
+      "probe": "parks-wrong-method",
+      "expected_decision": "method-not-allowed",
+      "observed_decision": "method-not-allowed",
+      "decision_match": true,
+      "expected_review": false,
+      "observed_status": 405,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "parks-valid-auth",
+      "probe": "parks-valid-auth",
+      "expected_decision": "authorized",
+      "observed_decision": "authorized",
+      "decision_match": true,
+      "expected_review": false,
+      "observed_status": null,
+      "fetch_count": 0,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "media-unsafe-redirect",
+      "probe": "media-unsafe-redirect",
+      "expected_decision": "blocked-redirect",
+      "observed_decision": "blocked-redirect",
+      "decision_match": true,
+      "expected_review": true,
+      "observed_status": 302,
+      "fetch_count": 1,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "media-allowed-redirect",
+      "probe": "media-allowed-redirect",
+      "expected_decision": "allowed",
+      "observed_decision": "allowed",
+      "decision_match": true,
+      "expected_review": false,
+      "observed_status": 200,
+      "fetch_count": 2,
+      "off_policy_fetch": false
+    },
+    {
+      "id": "media-provider-change",
+      "probe": "media-provider-change",
+      "expected_decision": "blocked-redirect",
+      "observed_decision": "blocked-redirect",
+      "decision_match": true,
+      "expected_review": false,
+      "observed_status": 302,
+      "fetch_count": 1,
+      "off_policy_fetch": false
+    }
+  ]
+}

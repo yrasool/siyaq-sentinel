@@ -116,9 +116,19 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 
 **Why not call this a live attack or solved security issue:** No request reached Parks, Paperstack, Grid, Cloudflare, or the GPU server. The new rules improve local review coverage but do not change an application's authorization boundary. The benign controls remain hard to distinguish with the current event fields.
 
+## 16. Connect local decisions from actual Parks and Paperstack code
+
+**What:** Added an offline probe that calls the current Parks authorization helper and Paperstack media redirect helper with nine synthetic, pre-labeled inputs. The label file and probe code were committed before the recorded output. The probe exports only Sentinel's allowlisted fields, records SHA-256 source fingerprints, and uses a mock fetch that cannot contact a provider. Sentinel then imports those decisions and its evaluator compares alerts with labels written independently of the detector output. The [integration record](LOCAL_APP_INTEGRATION.md) includes the architecture, commands, outcomes, and limits.
+
+**Observed:** All nine application decisions matched the expected decisions. No mock fetch went to an off-policy host. Sentinel produced three cases: a Parks denial burst and two Paperstack blocked redirects. The event-level evaluation covered four review-labeled records, missed zero, kept four controls quiet, and over-alerted on one benign provider-change scenario. The Parks app tests passed 5/5; Paperstack media-policy tests passed 10/10.
+
+**Why:** This separates an application's actual security decision from an authored Sentinel outcome. It tests both sides of the boundary while preserving source provenance and an explicit benign counterexample.
+
+**Why not live logs or app instrumentation yet:** The local SIYAQ app files contain active uncommitted work. A production event producer would alter Cloudflare application code and require review of privacy, actor pseudonymization, retention, route/binding scope, artifact content, and access. This milestone changes only Sentinel's standalone repository and does not imply live coverage.
+
 ## Next milestones
 
-1. Add privacy-reviewed event adapters for actual Parks and Paperstack application telemetry, with controlled local replay before any live connection.
+1. Add privacy-reviewed event producers for actual Parks and Paperstack application telemetry once the local event contract and retention model are approved; keep the producers separate from public routes.
 2. Verify final Cloudflare route and binding artifacts before adding release-event collection. A source-script pattern alone is insufficient.
 3. Add event correlation across products only when a defensible shared actor or asset identity exists. Do not join events merely because their times are close.
 4. Evaluate detection fidelity on separately labeled benign and adversarial replays, then tune thresholds and report exact counts.

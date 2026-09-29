@@ -1,0 +1,75 @@
+{
+  "scope": "Nine pre-labeled synthetic inputs executed against actual local app functions; not live telemetry or a field accuracy estimate.",
+  "source_sha256": {
+    "parks": "981cf3bd4d4050ad73eed0431179e553886aa02114bf62903df7db3ea08120ea",
+    "paperstack": "ed5a09a1089acb7292f371cc179b04416f5d00f3755cccefd0f58136cdc35c3f"
+  },
+  "case_count": 3,
+  "counts": {
+    "covered": 4,
+    "missed": 0,
+    "over-alert": 1,
+    "quiet-control": 4
+  },
+  "rows": [
+    {
+      "id": "parks-denied-1",
+      "expected_review": true,
+      "alerted": true,
+      "verdict": "covered"
+    },
+    {
+      "id": "parks-denied-2",
+      "expected_review": true,
+      "alerted": true,
+      "verdict": "covered"
+    },
+    {
+      "id": "parks-denied-3",
+      "expected_review": true,
+      "alerted": true,
+      "verdict": "covered"
+    },
+    {
+      "id": "parks-no-config",
+      "expected_review": false,
+      "alerted": false,
+      "verdict": "quiet-control"
+    },
+    {
+      "id": "parks-wrong-method",
+      "expected_review": false,
+      "alerted": false,
+      "verdict": "quiet-control"
+    },
+    {
+      "id": "parks-valid-auth",
+      "expected_review": false,
+      "alerted": false,
+      "verdict": "quiet-control"
+    },
+    {
+      "id": "media-unsafe-redirect",
+      "expected_review": true,
+      "alerted": true,
+      "verdict": "covered"
+    },
+    {
+      "id": "media-allowed-redirect",
+      "expected_review": false,
+      "alerted": false,
+      "verdict": "quiet-control"
+    },
+    {
+      "id": "media-provider-change",
+      "expected_review": false,
+      "alerted": true,
+      "verdict": "over-alert"
+    }
+  ],
+  "case_rules": [
+    "parks-refresh-repeated-unauthorized-v1",
+    "paperstack-media-blocked-redirect-v1",
+    "paperstack-media-blocked-redirect-v1"
+  ]
+}
