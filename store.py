@@ -26,6 +26,8 @@ def _stored_event(event: dict) -> dict:
     result["evidence"] = event.get("evidence", [])
     if "trace" in event:
         result["trace"] = event["trace"]
+    if "signature" in event:
+        result["signature"] = event["signature"]
     result["origin"] = event.get("_origin", "supplied event record")
     return result
 

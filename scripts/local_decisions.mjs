@@ -1,5 +1,5 @@
 /** Run real SIYAQ decision functions with synthetic inputs and no network access. */
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -7,11 +7,34 @@ import { pathToFileURL } from 'node:url';
 const argv = process.argv.slice(2);
 const rootAt = argv.indexOf('--siyaq-root');
 const outAt = argv.indexOf('--out');
-if (rootAt < 0 || outAt < 0 || !argv[rootAt + 1] || !argv[outAt + 1]) {
-  throw new Error('usage: tsx scripts/local_decisions.mjs --siyaq-root PATH --out OUTDIR');
+const keyAt = argv.indexOf('--key-file');
+if (rootAt < 0 || outAt < 0 || !argv[rootAt + 1] || !argv[outAt + 1] ||
+    (keyAt >= 0 && !argv[keyAt + 1])) {
+  throw new Error('usage: tsx scripts/local_decisions.mjs --siyaq-root PATH --out OUTDIR [--key-file PATH]');
 }
 const siyaqRoot = resolve(argv[rootAt + 1]);
 const outputDir = resolve(argv[outAt + 1]);
+const signingKey = keyAt < 0 ? null : await readFile(resolve(argv[keyAt + 1]));
+if (signingKey !== null && signingKey.length !== 32) {
+  throw new Error('event authentication key must contain exactly 32 bytes');
+}
+
+function sortedValue(value) {
+  if (Array.isArray(value)) return value.map(sortedValue);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortedValue(value[key])]));
+  }
+  return value;
+}
+
+function authenticated(event) {
+  if (signingKey === null) return event;
+  const signature = createHmac('sha256', signingKey)
+    .update('SIYAQ-SENTINEL-EVENT-V1\n', 'utf8')
+    .update(JSON.stringify(sortedValue(event)), 'utf8')
+    .digest('hex');
+  return { ...event, signature: `hmac-sha256-v1:${signature}` };
+}
 const labelsPath = new URL('../fixtures/labeled-local-decisions.json', import.meta.url);
 const labels = JSON.parse(await readFile(labelsPath, 'utf8'));
 const knownProbes = new Set([
@@ -100,12 +123,12 @@ const events = [];
 const results = [];
 for (const item of labels.cases) {
   const actual = await observe(item);
-  events.push({
+  events.push(authenticated({
     id: item.id, timestamp: item.timestamp, product: actual.product,
     action: actual.product === 'parks' ? 'refresh' : 'media-fetch',
     outcome: actual.decision, actor_id: item.actor_id,
     evidence: sourceRefs[actual.product],
-  });
+  }));
   results.push({
     id: item.id, probe: item.probe, expected_decision: item.expected_decision,
     observed_decision: actual.decision, decision_match: item.expected_decision === actual.decision,
@@ -119,6 +142,7 @@ const report = {
     key, createHash('sha256').update(bytes).digest('hex'),
   ])),
   labels_written_before_execution: true,
+  event_authentication: signingKey === null ? 'none' : 'HMAC-SHA256-v1 local pilot',
   results,
 };
 await mkdir(outputDir, { recursive: true });

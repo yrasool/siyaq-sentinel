@@ -6,12 +6,13 @@ import argparse
 import json
 from pathlib import Path
 
+from event_auth import load_key
 from sentinel import detect, read_events
 
 
-def evaluate(labels_path: Path, events_path: Path, probe_path: Path) -> dict:
+def evaluate(labels_path: Path, events_path: Path, probe_path: Path, key: bytes | None = None) -> dict:
     labels = json.loads(labels_path.read_text(encoding="utf-8"))["cases"]
-    events = read_events(events_path)
+    events = read_events(events_path, key=key)
     probe = json.loads(probe_path.read_text(encoding="utf-8"))
     label_by_id = {item["id"]: item for item in labels}
     event_by_id = {item["id"]: item for item in events}
@@ -57,8 +58,10 @@ def main() -> None:
     parser.add_argument("--events", type=Path, default=Path(__file__).parent / "out" / "local-probe" / "local-decisions.jsonl")
     parser.add_argument("--probe", type=Path, default=Path(__file__).parent / "out" / "local-probe" / "local-decision-probe.json")
     parser.add_argument("--out", type=Path, default=Path(__file__).parent / "out" / "local-probe" / "evaluation.json")
+    parser.add_argument("--key-file", type=Path, help="verify signed local decision events")
     args = parser.parse_args()
-    result = evaluate(args.labels, args.events, args.probe)
+    result = evaluate(args.labels, args.events, args.probe,
+                      key=load_key(args.key_file) if args.key_file else None)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"cases": result["case_count"], **result["counts"]}, sort_keys=True))

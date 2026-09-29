@@ -4,7 +4,7 @@ SIYAQ Sentinel is a local security-incident workbench for National Parks refresh
 
 The demo records are invented fixtures. A [local application connector](docs/LOCAL_APP_INTEGRATION.md) also executes the actual Parks authorization and Paperstack media-redirect functions with synthetic inputs and a mock fetch, then sends their sanitized decisions to Sentinel. The optional Grid collector reads scripts in a local SIYAQ checkout. Sentinel does not collect live Cloudflare logs, contact the GPU server, or deploy anything.
 
-Imports accept only the documented event fields. Raw URLs, headers, request bodies, and absolute source paths are rejected; source references must be short relative paths. ActionTrace's six free-text fields still require human redaction before import. Sentinel does not authenticate the first event it receives or prove that a pseudonymous actor ID was actually anonymized.
+Imports accept only the documented event fields. Raw URLs, headers, request bodies, and absolute source paths are rejected; source references must be short relative paths. ActionTrace's six free-text fields still require human redaction before import. An [optional local HMAC import](docs/EVENT_AUTHENTICATION.md) verifies signed event bytes before storage; ordinary fixture imports remain unauthenticated. Neither mode proves that a pseudonymous actor ID was actually anonymized or that a producer reported a true event.
 
 From this standalone repository's directory in Windows PowerShell:
 
@@ -34,4 +34,4 @@ Each case separates triggering event IDs from relevant local source files and st
 
 The [step-by-step build log](docs/BUILD_LOG.md) explains what was done, why each choice was made, how it was verified, and why other features were deferred. The [landscape review](docs/LANDSCAPE.md) compares the project with established security tools and standards using their official documentation.
 
-The recorded [local Parks/Paperstack decisions](fixtures/observed-local-decisions.jsonl) and [pre-written labels](fixtures/labeled-local-decisions.json) can be checked without the SIYAQ checkout using `python evaluate_local.py --events fixtures/observed-local-decisions.jsonl --probe fixtures/observed-local-probe.json --out out/recorded-evaluation.json`. See the [integration record](docs/LOCAL_APP_INTEGRATION.md) for the source-code probe and its evidence limits.
+The recorded [local Parks/Paperstack decisions](fixtures/observed-local-decisions.jsonl) and [pre-written labels](fixtures/labeled-local-decisions.json) can be checked without the SIYAQ checkout using `python evaluate_local.py --events fixtures/observed-local-decisions.jsonl --probe fixtures/observed-local-probe.json --out out/recorded-evaluation.json`. See the [integration record](docs/LOCAL_APP_INTEGRATION.md) for the source-code probe and the [event authentication guide](docs/EVENT_AUTHENTICATION.md) for the signed local run and its limits.

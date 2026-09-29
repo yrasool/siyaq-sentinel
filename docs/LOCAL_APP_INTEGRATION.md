@@ -42,6 +42,8 @@ python evaluate_local.py --events fixtures/observed-local-decisions.jsonl --prob
 
 The recorded source hashes identify the local code that produced the decisions; this repository does not vendor or publish those app source files. A fresh run on another checkout may produce different hashes or decisions. Recheck labels if the app policy changes.
 
+For an authenticated local transfer from the probe to Sentinel, use the [signed event import](EVENT_AUTHENTICATION.md). The public recorded fixture above is unsigned so it remains runnable without distributing a signing key.
+
 ## Why this step, and what remains
 
 The earlier replay sent authored outcomes straight to Sentinel. This connector first asks the **actual application functions** for their decisions, then tests how Sentinel investigates those decisions. It exercises a real security boundary without copying a secret, raw header, URL, IP address, request body, or provider response into Sentinel's event store.

@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from event_auth import create_key, load_key
 from sentinel import inspect_local_grid_scripts, read_events, render_html
 from store import IncidentStore
 
@@ -20,6 +21,9 @@ def main() -> None:
     ingest = commands.add_parser("ingest", help="import JSONL events and update cases")
     ingest.add_argument("events", type=Path)
     ingest.add_argument("--grid-repo", type=Path, help="also inspect local Grid scripts")
+    ingest.add_argument("--key-file", type=Path, help="require and verify HMAC signatures on every input event")
+    keygen = commands.add_parser("keygen", help="create a local 32-byte event key without printing it")
+    keygen.add_argument("--out", type=Path, required=True)
     commands.add_parser("list", help="list cases and statuses")
     show = commands.add_parser("show", help="show one case")
     show.add_argument("case_id")
@@ -30,19 +34,37 @@ def main() -> None:
     render = commands.add_parser("render", help="write a local HTML incident view")
     render.add_argument("--out", type=Path, default=Path(__file__).parent / "out" / "incidents.html")
     args = parser.parse_args()
-    store = IncidentStore(args.db)
+    if args.command == "keygen":
+        try:
+            create_key(args.out)
+        except OSError as error:
+            parser.error(str(error))
+        print(f"Created local event key at {args.out}")
+        return
 
     if args.command == "ingest":
-        events = read_events(args.events)
+        if args.key_file and args.grid_repo:
+            parser.error("signed input and Grid source inspection must be imported separately")
+        try:
+            events = read_events(args.events, key=load_key(args.key_file) if args.key_file else None)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
         if args.grid_repo:
             grid_event = inspect_local_grid_scripts(args.grid_repo)
             if grid_event:
                 events.append(grid_event)
             else:
                 print("Grid script pattern not recognized; no Grid event inferred")
-        added, case_count = store.ingest(events)
+        store = IncidentStore(args.db)
+        try:
+            added, case_count = store.ingest(events)
+        except ValueError as error:
+            parser.error(str(error))
         print(f"Imported {added} new event(s); {case_count} case(s) detected")
-    elif args.command == "list":
+        return
+
+    store = IncidentStore(args.db)
+    if args.command == "list":
         for case in store.cases():
             print(f"{case['case_id']}  {case['status']:6}  {case['title']}")
     elif args.command == "show":

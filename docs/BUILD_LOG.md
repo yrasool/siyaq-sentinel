@@ -126,9 +126,19 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 
 **Why not live logs or app instrumentation yet:** The local SIYAQ app files contain active uncommitted work. A production event producer would alter Cloudflare application code and require review of privacy, actor pseudonymization, retention, route/binding scope, artifact content, and access. This milestone changes only Sentinel's standalone repository and does not imply live coverage.
 
+## 17. Authenticate local producer bytes before import
+
+**What:** Added an opt-in HMAC-SHA-256 signature to the sanitized local decision events. A generated 32-byte key stays under ignored `out/`. The Node probe signs the exact allowlisted event fields; Python verifies them before making a SQLite store and records the verified origin in each case timeline. The [signed event guide](EVENT_AUTHENTICATION.md) contains the exact contract, commands, checks, and limitations.
+
+**Observed:** A signed run of the nine real-code local probes imported nine events and produced three cases. Editing one event outcome invalidated its signature; the rejected import created no database. Unit tests cover tampering, wrong/missing keys, event-ID conflicts, and key overwrite. The existing unsigned demo and red-team replay remain available.
+
+**Why:** The initial event pipeline could detect changes under an existing ID but could not authenticate a first-seen record. The signed mode makes the trust claim explicit and checkable without copying raw requests or credentials into events.
+
+**Why not call this production provenance:** The local key is shared across products and stored beside the ignored demo output. Signed bytes do not prove the producer told the truth, prevent valid-event replay into a fresh database, or protect SQLite after import. Live collection would need separate producer identities, protected key management, required verification, retention, and a reviewed Cloudflare release.
+
 ## Next milestones
 
-1. Add privacy-reviewed event producers for actual Parks and Paperstack application telemetry once the local event contract and retention model are approved; keep the producers separate from public routes.
+1. Add privacy-reviewed event producers for actual Parks and Paperstack application telemetry with separate producer identities and keys; keep the producers separate from public routes.
 2. Verify final Cloudflare route and binding artifacts before adding release-event collection. A source-script pattern alone is insufficient.
 3. Add event correlation across products only when a defensible shared actor or asset identity exists. Do not join events merely because their times are close.
 4. Evaluate detection fidelity on separately labeled benign and adversarial replays, then tune thresholds and report exact counts.

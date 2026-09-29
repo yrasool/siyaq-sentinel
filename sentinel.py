@@ -10,6 +10,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from event_auth import verify_event
+
 
 WINDOW = timedelta(minutes=10)
 SLOW_WINDOW = timedelta(minutes=30)
@@ -19,12 +21,12 @@ VOLUME_THRESHOLD = 6
 MAX_EVENTS = 10_000
 MAX_LINE_CHARS = 8_192
 TRACE_FIELDS = ("wanted", "available", "proposed", "simpler_candidate", "observed", "assessment")
-EVENT_FIELDS = frozenset(("id", "timestamp", "product", "action", "outcome", "actor_id", "evidence", "trace"))
+EVENT_FIELDS = frozenset(("id", "timestamp", "product", "action", "outcome", "actor_id", "evidence", "trace", "signature"))
 FIELD_LIMITS = {"id": 128, "timestamp": 64, "product": 40, "action": 40, "outcome": 40, "actor_id": 128}
 SOURCE_REF = re.compile(r"[A-Za-z0-9._/-]{1,200}\Z")
 
 
-def read_events(path: Path) -> list[dict]:
+def read_events(path: Path, key: bytes | None = None) -> list[dict]:
     events = []
     with path.open(encoding="utf-8") as source:
         for number, line in enumerate(source, 1):
@@ -60,8 +62,12 @@ def read_events(path: Path) -> list[dict]:
                                      or any(not isinstance(event["trace"][key], str)
                                             or len(event["trace"][key]) > 500 for key in TRACE_FIELDS)):
                 raise ValueError(f"line {number}: trace must contain six bounded text fields")
+            if key is None and "signature" in event:
+                raise ValueError(f"line {number}: signed event requires a verification key")
+            if key is not None and not verify_event(event, key):
+                raise ValueError(f"line {number}: missing or invalid event signature")
             event["_time"] = stamp.astimezone(timezone.utc)
-            event["_origin"] = "supplied event record"
+            event["_origin"] = "HMAC-verified local event" if key is not None else "supplied event record"
             events.append(event)
     if len({event["id"] for event in events}) != len(events):
         raise ValueError("event IDs must be unique")

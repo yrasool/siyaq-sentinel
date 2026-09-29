@@ -100,7 +100,7 @@ def scenarios() -> list[Scenario]:
         Scenario("T1", "First-seen telemetry falsification", "adversarial",
                  "A supplied record claims an authorized refresh despite the scenario author's rejected-action ground truth.",
                  True, [event("t1", 0, "parks", "refresh", "authorized", "actor-t")],
-                 "The local import has no source authentication. It cannot tell a forged first-seen record from a genuine authorized event."),
+                 "The unsigned import cannot authenticate a first-seen record. The optional HMAC path would reject an altered record without its key."),
         Scenario("B1", "Ordinary Parks read", "benign",
                  "An authorized public read has no security-relevant outcome.",
                  False, [event("b1", 0, "parks", "read", "ok", "visitor")],
@@ -152,7 +152,7 @@ def evaluate() -> dict:
         "limits": [
             "The actor IDs, outcomes, and attacker capabilities are authored fixtures, not observed incidents.",
             "A review alert is not a proven attack; a quiet result is not proof of safety.",
-            "Event authenticity is not established. A forged first-seen record could mislead this local collector.",
+            "Unsigned records remain unauthenticated. Optional HMAC verification authenticates bytes at import, not the truth of a producer's claim.",
             "Parks and Paperstack application controls are not executed by this replay; only Sentinel's detection rules are evaluated.",
         ],
     }
