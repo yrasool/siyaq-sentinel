@@ -112,6 +112,25 @@ class SentinelTests(unittest.TestCase):
         self.assertIn("scp command was proposed", page)
         self.assertIn("not proof that a command ran", page)
 
+    def test_unverified_grid_command_opens_review_without_release_claim(self):
+        event = {"id": "grid-unknown", "timestamp": "2026-09-25T12:00:00Z",
+                 "product": "grid", "action": "release-check", "outcome": "unverified-command",
+                 "actor_id": "local-check", "evidence": ["package.json"]}
+        cases = detect([event, event | {"id": "grid-ok", "outcome": "verified"}])
+        self.assertEqual([case["rule"] for case in cases], ["grid-release-unverified-command-v1"])
+        self.assertIn("does not prove", cases[0]["unknown"])
+        self.assertIn("artifact", cases[0]["recommended_action"])
+
+    def test_unclassified_agent_trace_opens_review_without_scope_claim(self):
+        source = read_events(Path(__file__).parent / "fixtures" / "actiontrace-demo.jsonl")[0]
+        cases = detect([source | {"id": "unclassified", "outcome": "unclassified"},
+                        source | {"id": "approved", "outcome": "approved"},
+                        {key: value for key, value in (source | {"id": "empty", "outcome": "unclassified"}).items()
+                         if key != "trace"}])
+        self.assertEqual([case["rule"] for case in cases], ["agent-action-unclassified-v1"])
+        self.assertIn("does not prove", cases[0]["unknown"])
+        self.assertIn("classify", cases[0]["recommended_action"])
+
 
 def read_time(minute):
     from datetime import datetime, timedelta, timezone

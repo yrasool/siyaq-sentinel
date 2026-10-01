@@ -112,7 +112,7 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 
 **What:** Codex Luna proposed a low-and-slow Parks event sequence already present in the replay; Codex Sol proposed a 30-minute review rule. Claude Sonnet then proposed a distinct six-event paced sequence that the local detector missed; Codex Sol proposed a volume rule. The [model attack/defense trace](MODEL_ATTACK_DEFEND.md) records the proposals, exact fixtures, baseline and post-change results, and benign controls.
 
-**Why:** Running the model-generated events through the same parser and detector separates plausible-sounding attack claims from observed misses. Running benign lookalikes after each defense reveals the cost of broader detection. The current sixteen-scenario replay has six caught, four missed, one partial, three over-alerts, and two quiet controls; these hand-authored counts are not a field accuracy estimate.
+**Why:** Running the model-generated events through the same parser and detector separates plausible-sounding attack claims from observed misses. Running benign lookalikes after each defense reveals the cost of broader detection. At this milestone, the sixteen-scenario replay had six caught, four missed, one partial, three over-alerts, and two quiet controls; these hand-authored counts are not a field accuracy estimate.
 
 **Why not call this a live attack or solved security issue:** No request reached Parks, Paperstack, Grid, Cloudflare, or the GPU server. The new rules improve local review coverage but do not change an application's authorization boundary. The benign controls remain hard to distinguish with the current event fields.
 
@@ -135,6 +135,16 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 **Why:** The initial event pipeline could detect changes under an existing ID but could not authenticate a first-seen record. The signed mode makes the trust claim explicit and checkable without copying raw requests or credentials into events.
 
 **Why not call this production provenance:** The local key is shared across products and stored beside the ignored demo output. Signed bytes do not prove the producer told the truth, prevent valid-event replay into a fresh database, or protect SQLite after import. Live collection would need separate producer identities, protected key management, required verification, retention, and a reviewed Cloudflare release.
+
+## 18. Review unknown release commands and unclassified agent proposals
+
+**What:** Added review cases for `grid/release-check/unverified-command` and `actiontrace/agent-proposal/unclassified` when the latter includes a bounded task trace. These rules cover two previously silent scenarios. They describe missing verification and missing classification, without claiming a release, command execution, scope expansion, or compromise. The Grid case asks for the command and final artifact; the ActionTrace case asks an analyst to compare the proposed action with the task and available access.
+
+**Observed:** All 26 unit tests pass. The same sixteen-scenario local replay now has eight caught, two missed, one partial, three over-alerts, and two quiet controls. The remaining misses are rotating actor IDs and falsified first-seen telemetry. The cross-product sequence remains partial because no shared identity justifies correlation. The three benign over-alerts did not change.
+
+**Why:** Unknown checker outcomes should not be mistaken for verified releases, and a missing ActionTrace classification should not silently discard an inspectable proposal. The new rules make these uncertainties visible to an analyst while preserving the distinction between evidence and inference.
+
+**Why not block a real release or infer malicious intent:** Sentinel is a local incident casebook. These event fields do not establish the state of Cloudflare or the agent's actual side effects. Release enforcement and actor-level conclusions require stronger evidence at the source boundary.
 
 ## Next milestones
 

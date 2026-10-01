@@ -235,6 +235,23 @@ def detect(events: list[dict]) -> list[dict]:
                 "recommended_action": "Inspect the command, build artifact, route inventory, and test target before release.",
             })
         elif (event["product"], event["action"], event["outcome"]) == (
+            "grid", "release-check", "unverified-command"
+        ):
+            cases.append({
+                "rule": "grid-release-unverified-command-v1",
+                "title": "Grid release command needs verification",
+                "actor_id": event["actor_id"],
+                "status": "open",
+                "first_seen": event["timestamp"],
+                "last_seen": event["timestamp"],
+                "event_ids": [event["id"]],
+                "trigger_event_ids": [event["id"]],
+                "source_refs": event.get("evidence", []),
+                "summary": "The local checker could not verify the proposed release command",
+                "unknown": "This event does not prove an unsafe release or what is currently deployed.",
+                "recommended_action": "Review the command, generated artifact, bindings, route inventory, and test target before release.",
+            })
+        elif (event["product"], event["action"], event["outcome"]) == (
             "actiontrace", "agent-proposal", "review-needed"
         ) and "trace" in event:
             cases.append({
@@ -250,6 +267,23 @@ def detect(events: list[dict]) -> list[dict]:
                 "summary": "Review whether the proposed action adds unnecessary transfer, access, or side effects",
                 "unknown": "A proposal is not proof that a command ran or that a simpler candidate would succeed.",
                 "recommended_action": "Compare the proposed and simpler paths against the task, available access, and observed effects before acting.",
+            })
+        elif (event["product"], event["action"], event["outcome"]) == (
+            "actiontrace", "agent-proposal", "unclassified"
+        ) and "trace" in event:
+            cases.append({
+                "rule": "agent-action-unclassified-v1",
+                "title": "Agent proposal has no review classification",
+                "actor_id": event["actor_id"],
+                "status": "open",
+                "first_seen": event["timestamp"],
+                "last_seen": event["timestamp"],
+                "event_ids": [event["id"]],
+                "trigger_event_ids": [event["id"]],
+                "source_refs": event.get("evidence", []),
+                "summary": "An agent proposal has a task trace but no upstream review decision",
+                "unknown": "The trace does not prove the action ran, expanded access, or was unsafe.",
+                "recommended_action": "Compare the proposal with the task, available access, simpler candidates, and observed effects; then classify it.",
             })
     for case in cases:
         identity = json.dumps([case["rule"], case["trigger_event_ids"]], separators=(",", ":"))
