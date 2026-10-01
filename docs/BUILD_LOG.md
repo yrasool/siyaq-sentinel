@@ -146,6 +146,16 @@ The [landscape review](LANDSCAPE.md) checks official documentation for TheHive, 
 
 **Why not block a real release or infer malicious intent:** Sentinel is a local incident casebook. These event fields do not establish the state of Cloudflare or the agent's actual side effects. Release enforcement and actor-level conclusions require stronger evidence at the source boundary.
 
+## 19. Preserve analyst decisions and verify a case snapshot
+
+**What:** Claude Sonnet challenged the investigation workflow and identified that the latest case note overwrote earlier reasoning. Added a transactional `decisions` journal with pseudonymous analyst ID, state, note, and time; the local casebook now shows the full sequence. Added a separate HMAC-SHA-256 case receipt bound to a verifier-supplied challenge. The [crypto workflow](CRYPTO_CASE_WORKFLOW.md) connects the design to HW1 and explains HW2's appropriate role.
+
+**Observed:** A four-decision regression retains the first unresolved note after a close/reopen sequence and SQLite reopen. Legacy latest notes are copied once into the new journal. The receipt verifies with the expected key and challenge, rejects a changed note or wrong challenge, and can compare the authenticated snapshot against the current database. A command-line demo generated and verified a receipt, then rejected a deliberately changed note with exit code 2. After another case decision, the old receipt also failed the current-database comparison with exit code 2. All 29 tests pass.
+
+**Why:** Detection can be correct while an investigation loses its reasoning trail. A preserved decision history and a verifiable snapshot make the response workflow inspectable. The HMAC receipt is a concrete application of the course's message-authentication and challenge-response concepts.
+
+**Why not claim immutable evidence:** The local SQLite journal can be edited by anyone with file access; the HMAC key is local and symmetric. A signed snapshot only authenticates its recorded bytes to a key holder, not the truth or completeness of underlying events. Verification without current-database comparison may accept an authentic stale snapshot, and the CLI does not maintain a consumed-challenge registry. Claude's proposed cross-product correlation was excluded because Sentinel has no such behavior or shared-identity evidence.
+
 ## Next milestones
 
 1. Add privacy-reviewed event producers for actual Parks and Paperstack application telemetry with separate producer identities and keys; keep the producers separate from public routes.

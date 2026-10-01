@@ -57,7 +57,25 @@ class IncidentStore:
                     analyst_note TEXT NOT NULL DEFAULT '',
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS decisions (
+                    decision_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    case_id TEXT NOT NULL REFERENCES cases(case_id),
+                    status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+                    analyst_id TEXT NOT NULL,
+                    note TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS one_legacy_decision_per_case
+                ON decisions(case_id) WHERE analyst_id = 'legacy-unknown';
             """)
+            db.execute("""
+                INSERT OR IGNORE INTO decisions (case_id, status, analyst_id, note, recorded_at)
+                SELECT c.case_id, c.status, 'legacy-unknown', c.analyst_note, c.updated_at
+                FROM cases AS c
+                WHERE c.analyst_note <> ''
+                  AND NOT EXISTS (SELECT 1 FROM decisions AS d WHERE d.case_id = c.case_id)
+            """)
+            db.commit()
 
     def ingest(self, events: list[dict]) -> tuple[int, int]:
         added = 0
@@ -100,22 +118,38 @@ class IncidentStore:
     def cases(self) -> list[dict]:
         with closing(sqlite3.connect(self.path)) as db:
             rows = db.execute("SELECT case_json, status, analyst_note, updated_at FROM cases").fetchall()
+            decisions = db.execute("SELECT decision_id, case_id, status, analyst_id, note, recorded_at FROM decisions ORDER BY decision_id").fetchall()
+        history: dict[str, list[dict]] = {}
+        for decision_id, case_id, status, analyst_id, note, recorded_at in decisions:
+            history.setdefault(case_id, []).append({"decision_id": decision_id, "status": status,
+                                                       "analyst_id": analyst_id, "note": note,
+                                                       "recorded_at": recorded_at,
+                                                       "origin": ("legacy latest note; original author and decision time unknown"
+                                                                  if analyst_id == "legacy-unknown" else "analyst action")})
         result = []
         for data, status, note, updated_at in rows:
             case = json.loads(data)
-            case.update(status=status, analyst_note=note, updated_at=updated_at)
+            case.update(status=status, analyst_note=note, updated_at=updated_at,
+                        decision_history=history.get(case["case_id"], []))
             result.append(case)
         return sorted(result, key=lambda case: (case["first_seen"], case["case_id"]))
 
-    def set_status(self, case_id: str, status: str, note: str) -> bool:
+    def set_status(self, case_id: str, status: str, note: str, analyst_id: str = "local-analyst") -> bool:
         if not re.fullmatch(r"[0-9a-f]{12}", case_id):
             raise ValueError("invalid case ID")
         if status not in {"open", "closed"}:
             raise ValueError("status must be open or closed")
         if not note.strip() or len(note) > 2_000:
             raise ValueError("analyst note must contain 1-2000 characters")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", analyst_id):
+            raise ValueError("analyst ID must be a 1-64 character pseudonym")
         with closing(sqlite3.connect(self.path)) as db:
             with db:
+                recorded_at = _utc_now()
                 result = db.execute("UPDATE cases SET status = ?, analyst_note = ?, updated_at = ? WHERE case_id = ?",
-                                    (status, note.strip(), _utc_now(), case_id))
-                return result.rowcount == 1
+                                    (status, note.strip(), recorded_at, case_id))
+                if result.rowcount != 1:
+                    return False
+                db.execute("INSERT INTO decisions (case_id, status, analyst_id, note, recorded_at) VALUES (?, ?, ?, ?, ?)",
+                           (case_id, status, analyst_id, note.strip(), recorded_at))
+                return True

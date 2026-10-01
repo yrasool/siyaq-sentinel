@@ -56,6 +56,40 @@ class IncidentStoreTests(unittest.TestCase):
         self.assertIn("scp", self.store.events()[0]["trace"]["proposed"])
         self.assertIn("Agent proposed", render_html(self.store.cases(), self.store.events()))
 
+    def test_claude_note_overwrite_scenario_keeps_each_decision(self):
+        self.store.ingest(self.events)
+        case_id = self.store.cases()[0]["case_id"]
+        self.store.set_status(case_id, "open", "Escalation unresolved; await source review.", "analyst-a")
+        self.store.set_status(case_id, "closed", "Credential retry appears benign.", "analyst-b")
+        self.store.set_status(case_id, "open", "Prior escalation still needs review.", "analyst-c")
+        self.store.set_status(case_id, "closed", "Credential retry appears benign again.", "analyst-b")
+        reopened = IncidentStore(self.store.path)
+        case = next(item for item in reopened.cases() if item["case_id"] == case_id)
+        self.assertEqual(len(case["decision_history"]), 4)
+        self.assertEqual([item["analyst_id"] for item in case["decision_history"]],
+                         ["analyst-a", "analyst-b", "analyst-c", "analyst-b"])
+        self.assertIn("Escalation unresolved", case["decision_history"][0]["note"])
+        self.assertIn("Escalation unresolved", render_html(reopened.cases(), reopened.events()))
+        self.assertEqual(case["status"], "closed")
+
+    def test_legacy_note_is_preserved_when_journal_is_added(self):
+        self.store.ingest(self.events)
+        case_id = self.store.cases()[0]["case_id"]
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(self.store.path)) as db:
+            with db:
+                db.execute("UPDATE cases SET status = 'closed', analyst_note = 'Earlier reasoning' WHERE case_id = ?", (case_id,))
+        migrated = IncidentStore(self.store.path)
+        self.assertEqual([item["note"] for item in migrated.cases()[0]["decision_history"]],
+                         ["Earlier reasoning"])
+        self.assertIn("original author and decision time unknown",
+                      migrated.cases()[0]["decision_history"][0]["origin"])
+        self.assertEqual(len(IncidentStore(self.store.path).cases()[0]["decision_history"]), 1)
+        migrated.set_status(case_id, "open", "Review again", "analyst-a")
+        self.assertEqual([item["note"] for item in migrated.cases()[0]["decision_history"]],
+                         ["Earlier reasoning", "Review again"])
+
 
 if __name__ == "__main__":
     unittest.main()

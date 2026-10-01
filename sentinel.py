@@ -351,8 +351,14 @@ def render_html(cases: list[dict], events: list[dict]) -> str:
             refs = ", ".join(f"<code>{esc(ref)}</code>" for ref in case["source_refs"])
             parts.append(f"<div class='evidence'><div class='label'>Relevant source</div><p>{refs}</p></div>")
         parts.append(f"<div class='evidence unknown'><div class='label'>Unknown</div><p>{esc(case['unknown'])}</p></div>")
-        if case.get("analyst_note"):
-            parts.append(f"<div class='evidence note'><div class='label'>Analyst note</div><p>{esc(case['analyst_note'])}</p></div>")
+        if case.get("decision_history"):
+            parts.append("<div class='label'>Analyst decisions</div><ol class='trace'>")
+            for decision in case["decision_history"]:
+                provenance = decision.get("origin", "analyst action")
+                parts.append(f"<li><time>{esc(decision['recorded_at'])}</time><div><strong>{esc(decision['status'])} · {esc(decision['analyst_id'])}</strong><span class='event-origin'>{esc(provenance)}</span><p>{esc(decision['note'])}</p></div></li>")
+            parts.append("</ol>")
+        elif case.get("analyst_note"):
+            parts.append(f"<div class='evidence note'><div class='label'>Legacy analyst note</div><p>{esc(case['analyst_note'])}</p></div>")
         parts.append(f"<div class='evidence'><div class='label'>Next step</div><p>{esc(case['recommended_action'])}</p></div></article>")
     parts.append("</main></div><footer>Local demonstration. Fixture events are invented; source inspections are read-only. A case is a reason to review, not proof of compromise.</footer></html>")
     return "\n".join(parts)
